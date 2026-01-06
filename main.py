@@ -1,11 +1,26 @@
+import os
+import numpy as np
 from flask import Flask
 from flask_cors import CORS
-from endpoints import api_bp
+import joblib, tensorflow as tf
+from scipy.stats import multivariate_normal
+from flask import Blueprint, jsonify, request
+from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 app = Flask(__name__)
 CORS(app)
 
-app.register_blueprint(api_bp)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+bayes = joblib.load(os.path.join(BASE_DIR, "../models/bayes_skin_model.pkl"))
+class_names = joblib.load(os.path.join(BASE_DIR, "../models/class_names.pkl"))
+cnn = tf.keras.models.load_model(os.path.join(BASE_DIR, "../models/cnn_feature_model.h5"))
+
+idx_to_class = {v:k for k,v in class_names.items()}
+
+def preprocess(img):
+    img = img.resize((320,320))
+    img = np.array(img)/255.0
+    return np.expand_dims(img,0)
 
 @app.get("/")
 def read_root():
@@ -21,3 +36,28 @@ def read_root():
             }
         }
     )
+
+@app.post("/predict", methods=["POST"])
+def predict():
+    file = request.files['image']
+    img = load_img(file)
+    x = preprocess(img)
+    feat = cnn.predict(x)[0]
+    posteriors = {}
+    for c in bayes.mean:
+        likelihood = multivariate_normal.pdf(feat, bayes.mean[c], bayes.cov[c])
+        posteriors[c] = likelihood * bayes.prior[c]
+    total = sum(posteriors.values())
+    posteriors = {k:v/total for k,v in posteriors.items()}
+    result = sorted(posteriors.items(), key=lambda x:x[1], reverse=True)[:3]
+    response = []
+    for c,p in result:
+        response.append({
+            "disease": idx_to_class[c],
+            "probability": round(p*100,2)
+        })
+    return jsonify({
+        "top_diagnosis": response[0]["disease"],
+        "confidence": response[0]["probability"],
+        "top3": response
+    })
