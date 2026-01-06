@@ -72,18 +72,23 @@ def predict():
     img = load_img(BytesIO(file.read()))
     x = preprocess(img)
     feat = cnn.predict(x)[0]
-    posteriors = {}
+    feat = feat / np.linalg.norm(feat)
+    posteriors_log = {}
     for c in bayes.mean:
-        likelihood = multivariate_normal.pdf(feat, mean=bayes.mean[c], cov=np.diag(bayes.var[c]))
-        posteriors[c] = likelihood * bayes.prior[c]
-    total = sum(posteriors.values())
-    posteriors = {k:v/total for k,v in posteriors.items()}
+        loglik = -0.5 * np.sum(
+            np.log(2*np.pi*bayes.var[c]) + ((feat - bayes.mean[c])**2)/bayes.var[c]
+        )
+        posteriors_log[c] = loglik + np.log(bayes.prior[c])
+    max_log = max(posteriors_log.values())
+    exp_scores = {k: np.exp(v - max_log) for k,v in posteriors_log.items()}
+    total = sum(exp_scores.values())
+    posteriors = {k: v/total for k,v in exp_scores.items()}
     result = sorted(posteriors.items(), key=lambda x:x[1], reverse=True)[:3]
     response = []
-    for c,p in result:
+    for c, p in result:
         response.append({
             "disease": idx_to_class[c],
-            "probability": round(p*100,2)
+            "probability": round(p*100, 2)
         })
     return jsonify({
         "success": True,
