@@ -7,14 +7,14 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 api_bp = Blueprint("api", __name__)
 
-bayes = joblib.load("bayes_skin_model.pkl")
-class_names = joblib.load("class_names.pkl")
-cnn = tf.keras.models.load_model("cnn_feature_model.h5")
+bayes = joblib.load("models/bayes_skin_model.pkl")
+class_names = joblib.load("models/class_names.pkl")
+cnn = tf.keras.models.load_model("models/cnn_feature_model.h5")
 
 idx_to_class = {v:k for k,v in class_names.items()}
 
 def preprocess(img):
-    img = img.resize((224,224))
+    img = img.resize((320,320))
     img = np.array(img)/255.0
     return np.expand_dims(img,0)
 
