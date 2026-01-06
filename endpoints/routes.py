@@ -1,15 +1,16 @@
-from flask import Blueprint, jsonify, request
-from flask_cors import CORS
+import os
 import numpy as np
 import joblib, tensorflow as tf
 from scipy.stats import multivariate_normal
+from flask import Blueprint, jsonify, request
 from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 api_bp = Blueprint("api", __name__)
 
-bayes = joblib.load("/bayes_skin_model.pkl")
-class_names = joblib.load("models/class_names.pkl")
-cnn = tf.keras.models.load_model("models/cnn_feature_model.h5")
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+bayes = joblib.load(os.path.join(BASE_DIR, "../models/bayes_skin_model.pkl"))
+class_names = joblib.load(os.path.join(BASE_DIR, "../models/class_names.pkl"))
+cnn = tf.keras.models.load_model(os.path.join(BASE_DIR, "../models/cnn_feature_model.h5"))
 
 idx_to_class = {v:k for k,v in class_names.items()}
 
@@ -18,7 +19,7 @@ def preprocess(img):
     img = np.array(img)/255.0
     return np.expand_dims(img,0)
 
-@api_bp.get("/predict", methods=["POST"])
+@api_bp.route("/predict", methods=["POST"])
 def predict():
     file = request.files['image']
     img = load_img(file)
@@ -37,7 +38,6 @@ def predict():
             "disease": idx_to_class[c],
             "probability": round(p*100,2)
         })
-
     return jsonify({
         "top_diagnosis": response[0]["disease"],
         "confidence": response[0]["probability"],
