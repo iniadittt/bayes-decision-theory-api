@@ -10,6 +10,32 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 app = Flask(__name__)
 CORS(app)
 
+class GaussianBayes:
+    def __init__(self):
+        self.mean = {}
+        self.var  = {}
+        self.prior = {}
+
+    def fit(self, X, y):
+        for c in np.unique(y):
+            Xc = X[y == c]
+            self.mean[c] = Xc.mean(axis=0)
+            self.var[c]  = Xc.var(axis=0) + 0.01
+            self.prior[c] = len(Xc) / len(X)
+
+    def predict(self, X):
+        preds = []
+        for x in X:
+            scores = {}
+            for c in self.mean:
+                loglik = -0.5 * np.sum(
+                    np.log(2*np.pi*self.var[c]) +
+                    ((x - self.mean[c])**2) / self.var[c]
+                )
+                scores[c] = loglik + np.log(self.prior[c])
+            preds.append(max(scores, key=scores.get))
+        return np.array(preds)
+
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 bayes = joblib.load(os.path.join(BASE_DIR, "models/bayes_skin_model.pkl"))
 class_names = joblib.load(os.path.join(BASE_DIR, "models/class_names.pkl"))
