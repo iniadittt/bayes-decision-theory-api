@@ -7,7 +7,7 @@ from tensorflow.keras.preprocessing.image import load_img, img_to_array
 
 api_bp = Blueprint("api", __name__)
 
-bayes = joblib.load("models/bayes_skin_model.pkl")
+bayes = joblib.load("/bayes_skin_model.pkl")
 class_names = joblib.load("models/class_names.pkl")
 cnn = tf.keras.models.load_model("models/cnn_feature_model.h5")
 
