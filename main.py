@@ -63,7 +63,7 @@ def read_root():
         }
     )
 
-@app.post("/predict", methods=["POST"])
+@app.post("/predict")
 def predict():
     file = request.files['image']
     img = load_img(file)
