@@ -11,9 +11,9 @@ app = Flask(__name__)
 CORS(app)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-bayes = joblib.load(os.path.join(BASE_DIR, "../models/bayes_skin_model.pkl"))
-class_names = joblib.load(os.path.join(BASE_DIR, "../models/class_names.pkl"))
-cnn = tf.keras.models.load_model(os.path.join(BASE_DIR, "../models/cnn_feature_model.h5"))
+bayes = joblib.load(os.path.join(BASE_DIR, "models/bayes_skin_model.pkl"))
+class_names = joblib.load(os.path.join(BASE_DIR, "models/class_names.pkl"))
+cnn = tf.keras.models.load_model(os.path.join(BASE_DIR, "models/cnn_feature_model.h5"))
 
 idx_to_class = {v:k for k,v in class_names.items()}
 
